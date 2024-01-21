@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materialize Example</title>
+    <!-- Include Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+</head>
+<body>
+
+<div class="container">
+    <h1 class="center-align">Crawler</h1>
+
+    <div class="row">
+        <div class="input-field col s4">
+            <select id="slot-selector">
+                <option value="0" disabled selected>Choose slot to crawl</option>
+                <option value="vs4096bufking">bufking</option>
+                <option value="vs9piggybank">PIGGY BANK</option>
+                <option value="vswayschilheat">Chilli Heat</option>
+                <option value="vswaysdogs">Dog House</option>
+
+            </select>
+            <label>Slot</label>
+        </div>
+        <div class="input-field col s4">
+            <input id="user" type="number" class="validate" value="5">
+            <label for="user">User</label>
+        </div>
+        <div class="input-field col s4">
+            <input id="count" type="number" class="validate" value="1000">
+            <label for="count">Count</label>
+        </div>
+    </div>
+    <div class="center-align">
+        <span class="blue-text" style="font-size: 24px; margin-bottom: 20px; display: block;" id="uuidField"></span>
+    </div>
+
+    <div class="row">
+        <div class="col s12 center-align">
+            <a class="btn waves-effect waves-light" id="btnStart">Start</a>
+        </div>
+    </div>
+
+    <div class="row" id="progress-container">
+
+    </div>
+
+</div>
+
+<!-- Include Materialize JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+<script>
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var elems = document.querySelectorAll('select');
+        M.FormSelect.init(elems);
+    });
+
+    const btnStart = document.getElementById('btnStart')
+    const progressContainer = document.getElementById('progress-container')
+    const slotSelector = document.getElementById('slot-selector')
+    btnStart.addEventListener("click", StartCrawling);
+    let crawlerCount = 0;
+    function StartCrawling(){
+
+        if (crawlerCount === 5) {
+            return;
+        }
+        crawlerCount++;
+
+        const userValue = document.getElementById("user").value;
+        const countValue = document.getElementById("count").value;
+        const slot = slotSelector.value
+        if (slot === "0") return;
+
+
+        const eventSource = new EventSource(`/api/crawl?user=${encodeURIComponent(userValue)}&count=${encodeURIComponent(countValue)}&slot=${encodeURIComponent(slot)}`);
+        let totalCount = userValue*countValue;
+        let startCount = 0;
+
+        //region [make ui]
+        const colS10 = document.createElement("div");
+        colS10.classList.add("col", "s10");
+
+
+        const progress = document.createElement("div");
+        progress.classList.add("progress");
+
+
+        const progressBar = document.createElement("div");
+        progressBar.classList.add("determinate");
+        progressBar.id = "progressBar";
+        progressBar.style.width = "0";
+
+
+        const descTextContainer = document.createElement("div");
+        descTextContainer.classList.add("desc-text");
+        descTextContainer.style.display = "flex";
+
+        const slotSpan = document.createElement("span");
+        slotSpan.classList.add("left-align");
+        slotSpan.id = "slot";
+        slotSpan.textContent = slot;
+        slotSpan.style.flex = "0.2";
+
+        const uuidSpan = document.createElement("span");
+        uuidSpan.classList.add("left-align");
+        uuidSpan.id = "uuid";
+        uuidSpan.textContent = "";
+        uuidSpan.style.flex = "0.4";
+
+        const progressTextSpan = document.createElement("span");
+        progressTextSpan.classList.add("center-align");
+        progressTextSpan.id = "progressText";
+        progressTextSpan.textContent = "Progress: 0%";
+        progressTextSpan.style.flex = "0.2";
+
+        const progressText2Span = document.createElement("span");
+        progressText2Span.classList.add("right-align");
+        progressText2Span.id = "progressText2";
+        progressText2Span.textContent = `0/${totalCount}`;
+        progressText2Span.style.flex = "0.2";
+
+        descTextContainer.appendChild(slotSpan);
+        descTextContainer.appendChild(uuidSpan);
+        descTextContainer.appendChild(progressTextSpan);
+        descTextContainer.appendChild(progressText2Span);
+
+
+        const colS2 = document.createElement("div");
+        colS2.classList.add("col", "s2", "center-align");
+
+
+        const btnStop = document.createElement("a");
+        btnStop.classList.add("btn", "waves-effect", "waves-light");
+        btnStop.id = "btnStop";
+        btnStop.textContent = "Stop";
+
+
+        progress.appendChild(progressBar);
+        colS10.appendChild(progress);
+        colS10.appendChild(descTextContainer);
+        colS2.appendChild(btnStop);
+
+        progressContainer.appendChild(colS10)
+        progressContainer.appendChild(colS2)
+        //endregion
+
+        //region [add event]
+        eventSource.addEventListener('uuid', event => {
+            console.log("uuid", event.data);
+            uuidSpan.textContent = event.data;
+            }, false);
+
+
+        eventSource.addEventListener('count', event => {
+
+            let data = ++startCount;
+            progressBar.style.width = `${data / totalCount * 100}%`;
+            progressTextSpan.textContent = `Progress: ${Math.floor(data / totalCount * 100)}%`;
+            progressText2Span.textContent = `${data} / ${totalCount}`
+        }, false);
+
+
+        eventSource.addEventListener("close" , event=> {
+            console.log("close event", event);
+            closeConnection();
+        })
+        eventSource.addEventListener("error", event => {
+            console.log("error event", event);
+            closeConnection();
+        });
+
+        btnStop.addEventListener("click", function () {
+            console.log("stop clicked");
+            closeConnection();
+        })
+
+
+        function closeConnection(){
+            eventSource.close();
+            btnStop.classList.add('disabled');
+        }
+        //endregion
+    }
+</script>
+</body>
+</html>

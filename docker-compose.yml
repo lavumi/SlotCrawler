@@ -1,0 +1,20 @@
+version: '3.4'
+
+services:
+  crawler:
+    container_name: crawler
+    image: slot-crawler:0.0.4
+    ports:
+      - "3000:8081"
+    environment:
+      MONGO_URL: mongo:27017
+      MONGO_USER: root
+      MONGO_PASS: example
+
+  mongodb:
+    container_name: mongo
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example

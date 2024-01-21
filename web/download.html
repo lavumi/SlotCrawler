@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Raw Data</title>
+    <!-- Add Materialize CSS CDN link -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+</head>
+<body>
+<div class="container">
+    <h1>Get Raw Data</h1>
+    <div class="row">
+        <div class="input-field col s4">
+            <select id="slot-selector" onchange="changeSlot()">
+                <option value="0" disabled selected>Choose slot to crawl</option>
+                <option value="vs4096bufking">bufking</option>
+                <option value="vs9piggybank">PIGGY BANK</option>
+                <option value="vswayschilheat">Chilli Heat</option>
+                <option value="vswaysdogs">Dog House</option>
+
+            </select>
+            <label>Slot</label>
+        </div>
+        <div class="input-field col s8">
+            <select id="user-list">
+                <option value="" disabled selected>Select a user</option>
+            </select>
+            <label for="user-list">User List</label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col s12">
+            <a id="download-btn" class="waves-effect waves-light btn">Download</a>
+        </div>
+    </div>
+</div>
+
+<!-- Add Materialize JavaScript CDN link -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+<script>
+    const sl = document.getElementById('slot-selector');
+    const userSelect = document.getElementById('user-list');
+
+    function changeSlot() {
+        console.log("select event called");
+        fetch(`/api/users/${sl.value}`)
+            .then(response => {
+                return response.json()
+            }).then(json => {
+            console.log(json.users);
+            let users = json.users;
+            for (let i = 0; i < users.length; i++) {
+                const userName = users[i].Name;
+                const userId = users[i].Count;
+                const newUserOption = document.createElement('option');
+                newUserOption.value = userName;
+                newUserOption.text = `${userName} \t(Count: ${userId})`;
+                userSelect.add(newUserOption);
+            }
+            M.FormSelect.init(userSelect);
+        })
+            .catch(err => console.log(err))
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize the select element
+
+        M.FormSelect.init(userSelect);
+
+        // Initialize the select element
+
+        M.FormSelect.init(sl);
+
+        // Add event listener to the download button
+        const downloadBtn = document.getElementById('download-btn');
+        downloadBtn.addEventListener('click', function () {
+            const selectedUser = userSelect.value;
+            const selectedSlot = sl.value;
+            if (selectedUser && selectedSlot) {
+                // Replace this with your download logic
+                // alert(`Downloading data for ${selectedUser}`);
+                fetch(`/api/data?user=${selectedUser}&slot=${selectedSlot}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = URL.createObjectURL(blob);
+                        downloadLink.download = 'spin-data.json';
+                        downloadLink.textContent = 'Download API Response';
+                        // document.body.appendChild(downloadLink);
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click(); // Automatically trigger the download
+                        document.body.removeChild(downloadLink);
+                    })
+                    .catch(error => {
+                        console.error('API request error:', error);
+                    });
+
+
+            } else {
+                alert('Please select a user before downloading.');
+            }
+        });
+
+
+    });
+</script>
+</body>
+</html>
